@@ -178,16 +178,46 @@ function motivationMsg(streak, trainedToday, sessions) {
 }
 
 // ===========================================================================
+// ---- Opening splash --------------------------------------------------------
+function Splash({ leaving }) {
+  return (
+    <div className={`splash${leaving ? " leaving" : ""}`} style={S.splash}>
+      <div style={S.splashInner}>
+        <div className="splashIcon" style={S.splashIcon}>
+          <ClipboardList size={48} color={accent} strokeWidth={2.3} />
+        </div>
+        <div className="splashWord" style={S.splashWord}>
+          IRON <span style={{ color: accent }}>LOG</span>
+        </div>
+        <div className="splashBar" style={S.splashBar} />
+        <div className="splashSub" style={S.splashSub}>厚板ダイエットクラブ</div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================================================
 export default function App() {
   const [sheets, setSheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // sheet object or null
   const [tab, setTab] = useState("home");        // home | analysis | record | calendar | motivation
   const [targetWeight, setTargetWeight] = useState("");
+  const [splash, setSplash] = useState(true);
+  const [splashLeaving, setSplashLeaving] = useState(false);
 
   useEffect(() => {
     load().then((s) => { setSheets(s); setLoading(false); });
     setTargetWeight(loadTarget());
+  }, []);
+
+  // オープニング演出：少し見せてからフェードアウトして消す
+  useEffect(() => {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const hold = reduce ? 300 : 1900;
+    const t1 = setTimeout(() => setSplashLeaving(true), hold);
+    const t2 = setTimeout(() => setSplash(false), hold + 520);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   const changeTarget = (v) => { setTargetWeight(v); saveTarget(v); };
@@ -227,6 +257,7 @@ export default function App() {
   return (
     <div style={S.root}>
       <style>{CSS}</style>
+      {splash && <Splash leaving={splashLeaving} />}
       {loading ? (
         <div style={S.empty}>読み込み中…</div>
       ) : (
@@ -1236,7 +1267,27 @@ input:focus-visible, button:focus-visible { outline: 2px solid #FF6B3D; outline-
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@keyframes splashIcon {
+  0% { opacity: 0; transform: scale(.4) rotate(-12deg); }
+  70% { opacity: 1; transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes splashWord {
+  0% { opacity: 0; transform: translateY(16px) scale(.94); }
+  60% { opacity: 1; transform: translateY(0) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes splashBar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+@keyframes splashSub { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+.splash.leaving { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+.splashIcon { animation: splashIcon .7s cubic-bezier(.2,.85,.25,1) both; }
+.splashWord { animation: splashWord .6s ease both .25s; }
+.splashBar { animation: splashBar .5s ease both .55s; }
+.splashSub { animation: splashSub .5s ease both .85s; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  .splashIcon, .splashWord, .splashBar, .splashSub { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
 `;
 
 // ---- Dark palette ----------------------------------------------------------
@@ -1413,6 +1464,21 @@ const S = {
   },
   tabItemActive: { color: accent },
   tabLabel: { fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" },
+
+  // --- Opening splash ---
+  splash: {
+    position: "fixed", inset: 0, zIndex: 100, background: bg,
+    display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  splashInner: { display: "flex", flexDirection: "column", alignItems: "center", gap: 14 },
+  splashIcon: {
+    width: 84, height: 84, borderRadius: 18, background: surface,
+    border: `1.5px solid ${border}`, display: "flex", alignItems: "center",
+    justifyContent: "center", boxShadow: "0 8px 26px rgba(0,0,0,.4)",
+  },
+  splashWord: { fontSize: 40, fontWeight: 900, letterSpacing: "0.12em", color: ink },
+  splashBar: { width: 120, height: 4, background: accent, borderRadius: 2, transformOrigin: "left center" },
+  splashSub: { fontSize: 13, fontWeight: 700, color: inkSoft, letterSpacing: "0.08em" },
 
   sheetCard: {
     display: "block", width: "100%", textAlign: "left", background: surface,
